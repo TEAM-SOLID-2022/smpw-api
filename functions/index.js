@@ -1,9 +1,9 @@
-const functions = require("firebase-functions");
+const { helloWorld } = require("./controller/auth");
+const territories = require("./controller/territories");
+const congregations = require("./controller/congregations");
+const publisher = require("./controller/publisher");
 
-// // Create and Deploy Your First Cloud Functions
-// // https://firebase.google.com/docs/functions/write-firebase-functions
-//
-// exports.helloWorld = functions.https.onRequest((request, response) => {
-//   functions.logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+exports.auth = helloWorld;
+exports.territories = territories;
+exports.congregations = congregations;
+exports.publisher = publisher;
