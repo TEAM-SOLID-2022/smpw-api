@@ -2,7 +2,7 @@
   "functions": [
     {
       "source": "functions",
-      "codebase": "Zin3xt-codebase",
+      "codebase": "wacanam-codebase",
       "ignore": [
         "node_modules",
         ".git",
