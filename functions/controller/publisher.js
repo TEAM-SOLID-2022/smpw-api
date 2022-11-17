@@ -17,30 +17,42 @@ exports.addPublisher = functions.https.onRequest((request, response) => {
     const publisherLastCongragationId = request.body.publisherLastCongragationId;
 
 
-    firestore.collection("publishers").add({
+    firestore.doc(`congregations/${publisherLastCongragationId}`).get().then((doc) => {
 
-        publisherName,
-        publisherDescription,
-        publisherAddress,
-        publisherEmail,
-        publisherPhone,
-        publisherStatus,
-        pulisherPrivilege,
-        publisherLastCongragationRef: firestore.doc(`congregations/${publisherLastCongragationId}`),
-        status: "draft",
-        createdAt: new Date(),
-        verifiedDate: new Date(),
-        updatedAt: new Date(),
+        if (!doc.exists) {
 
-    }).then(async (publisher) => {
+            response.status(404).send("Congregation not found");
 
-        const p_ = await publisher.get();
-        response.send({ ...p_.data(), id: p_.id });
+} else {
 
-    }).catch((error) => {
+            firestore.collection("publishers").add({
 
-        functions.logger.info("Fail to add publisher");
-        response.status(500).send(error);
+                publisherName,
+                publisherDescription,
+                publisherAddress,
+                publisherEmail,
+                publisherPhone,
+                publisherStatus,
+                pulisherPrivilege,
+                publisherLastCongragationRef: firestore.doc(`congregations/${publisherLastCongragationId}`),
+                status: "draft",
+                createdAt: new Date(),
+                verifiedDate: null,
+                updatedAt: new Date(),
+
+            }).then(async (publisher) => {
+
+                const p_ = await publisher.get();
+                response.send({ ...p_.data(), id: p_.id });
+
+            }).catch((error) => {
+
+                functions.logger.info("Fail to add publisher", error);
+                response.status(500).send(error);
+
+            });
+
+}
 
     });
 
