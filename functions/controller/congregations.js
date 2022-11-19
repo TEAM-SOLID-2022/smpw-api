@@ -2,37 +2,42 @@ const functions = require("firebase-functions");
 const firebase = require("firebase-admin");
 const app = require("./index").app;
 const firestore = firebase.firestore(app);
+const yup = require("yup");
+const { pick } = require("lodash");
 
 
 // This is the function that will be called when the user clicks the "Add Congregation" button
 // in the app. It will create a new congregation in the database.\
 exports.addCongregation = functions.https.onRequest((request, response) => {
 
-    const congregationName = request.body.congregationName;
-    const congregationDescription = request.body.congregationDescription;
-    const congregationAddress = request.body.congregationAddress;
-
-    firestore.collection("congregations").add({
-
-        congregationName,
-        congregationDescription,
-        congregationAddress,
-        status: "draft",
-        createdAt: new Date(),
-        verifiedDate: new Date(),
-        updatedAt: new Date(),
-
-    }).then(async (congregation) => {
-
-        const c_ = await congregation.get();
-        response.send({ ...c_.data(), id: c_.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to add congregation");
-        response.send(500).send(error);
-
+    const schema = yup.object({
+        congregationName: yup.string().required("congregationName is required"),
+        congregationDescription: yup.string().required("congregationDescription is required"),
+        congregationAddress: yup.string().required("congregationAddress is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const freshData = pick(request.body, ["congregationName", "congregationDescription", "congregationAddress"]);
+
+        const congregationRef = firestore.collection("congregations");
+
+        congregationRef.add({
+
+            ...freshData,
+            status: "draft",
+            createdAt: new Date(),
+            verifiedDate: null,
+            updatedAt: new Date(),
+
+        }).then(async (congregation) => {
+
+            const c_ = await congregation.get();
+            response.send({ ...c_.data(), id: c_.id });
+
+        }).catch((error) => response.send(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -41,7 +46,9 @@ exports.addCongregation = functions.https.onRequest((request, response) => {
 // in the app. It will get all congregations from the database.\
 exports.getCongregations = functions.https.onRequest((request, response) => {
 
-    firestore.collection("congregations").get().then((congregations) => {
+    const congregationRef = firestore.collection("congregations");
+
+    congregationRef.get().then((congregations) => {
 
         const congregations_ = congregations.docs.map((congregation) => {
 
@@ -51,12 +58,7 @@ exports.getCongregations = functions.https.onRequest((request, response) => {
 
         response.send(congregations_);
 
-    }).catch((error) => {
-
-        functions.logger.info("Fail to get congregations");
-        response.send(500).send(error);
-
-    });
+    }).catch((error) => response.send(400).send(error));
 
 });
 
@@ -65,19 +67,24 @@ exports.getCongregations = functions.https.onRequest((request, response) => {
 // in the app. It will get a congregation from the database.\
 exports.getCongregation = functions.https.onRequest((request, response) => {
 
-    const congregationId = request.body.congregationId;
-    if (!congregationId) return response.send(400).send("congregationId is required");
 
-    firestore.collection("congregations").doc(congregationId).get().then((congregation) => {
-
-        response.send({ ...congregation.data(), id: congregation.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to get congregation");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+
+        congregationRef.get().then((congregation) => {
+
+            response.send({ ...congregation.data(), id: congregation.id });
+
+        }).catch((error) => response.status(500).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -86,31 +93,32 @@ exports.getCongregation = functions.https.onRequest((request, response) => {
 // in the app. It will update a congregation in the database.\
 exports.updateCongregation = functions.https.onRequest((request, response) => {
 
-    const congregationId = request.body.congregationId;
-    if (!congregationId) return response.send(400).send("congregationId is required");
-
-    const congregationName = request.body.congregationName;
-    const congregationDescription = request.body.congregationDescription;
-    const congregationAddress = request.body.congregationAddress;
-
-    firestore.collection("congregations").doc(congregationId).update({
-
-        congregationName,
-        congregationDescription,
-        congregationAddress,
-        updatedAt: new Date(),
-
-    }).then(async (congregation) => {
-
-        const c_ = await congregation.get();
-        response.send({ ...c_.data(), id: c_.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to update congregation");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationName: yup.string().required("congregationName is required"),
+        congregationDescription: yup.string().required("congregationDescription is required"),
+        congregationAddress: yup.string().required("congregationAddress is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+        const freshData = pick(request.body, ["congregationName", "congregationDescription", "congregationAddress"]);
+
+        congregationRef.update({
+
+            ...freshData,
+            updatedAt: new Date(),
+
+        }).then(async (congregation) => {
+
+            const c_ = await congregationRef.get();
+            response.send({ ...c_.data(), id: c_.id });
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -119,19 +127,23 @@ exports.updateCongregation = functions.https.onRequest((request, response) => {
 // in the app. It will delete a congregation from the database.\
 exports.deleteCongregation = functions.https.onRequest((request, response) => {
 
-    const congregationId = request.body.congregationId;
-    if (!congregationId) return response.send(400).send("congregationId is required");
-
-    firestore.collection("congregations").doc(congregationId).delete().then(() => {
-
-        response.send("Congregation deleted successfully");
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to delete congregation");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+
+        congregationRef.delete({ exists: true }).then(() => {
+
+            response.send("Congregation deleted successfully");
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -140,25 +152,29 @@ exports.deleteCongregation = functions.https.onRequest((request, response) => {
 // in the app. It will verify a congregation in the database.\
 exports.verifyCongregation = functions.https.onRequest((request, response) => {
 
-    const congregationId = request.body.congregationId;
-    if (!congregationId) return response.send(400).send("congregationId is required");
-
-    firestore.collection("congregations").doc(congregationId).update({
-
-        status: "verified",
-        verifiedDate: new Date(),
-        updatedAt: new Date(),
-
-    }).then(async (congregation) => {
-
-        const c_ = await congregation.get();
-        response.send({ ...c_.data(), id: c_.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to verify congregation");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+        congregationRef.update({
+
+            status: "verified",
+            verifiedDate: new Date(),
+            updatedAt: new Date(),
+
+        }).then(async (congregation) => {
+
+            const c_ = await congregationRef.get();
+            response.send({ ...c_.data(), id: c_.id });
+
+        }).catch((error) => response.status(500).send(error));
+
+    }).catch((error) => response.status(400).send(error));
+
 
 });

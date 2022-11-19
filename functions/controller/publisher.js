@@ -2,59 +2,63 @@ const functions = require("firebase-functions");
 const firebase = require("firebase-admin");
 const app = require("./index").app;
 const firestore = firebase.firestore(app);
+const yup = require("yup");
+const { pick } = require("lodash");
 
 // This is the function that will be called when the user clicks the "Add Publisher" button
 // in the app. It will create a new publisher in the database.\
 exports.addPublisher = functions.https.onRequest((request, response) => {
 
-    const publisherName = request.body.publisherName;
-    const publisherDescription = request.body.publisherDescription;
-    const publisherAddress = request.body.publisherAddress;
-    const publisherEmail = request.body.publisherEmail;
-    const publisherPhone = request.body.publisherPhone;
-    const publisherStatus = request.body.publisherStatus;
-    const pulisherPrivilege = request.body.pulisherPrivilege;
-    const publisherLastCongragationId = request.body.publisherLastCongragationId;
-
-
-    firestore.doc(`congregations/${publisherLastCongragationId}`).get().then((doc) => {
-
-        if (!doc.exists) {
-
-            response.status(404).send("Congregation not found");
-
-} else {
-
-            firestore.collection("publishers").add({
-
-                publisherName,
-                publisherDescription,
-                publisherAddress,
-                publisherEmail,
-                publisherPhone,
-                publisherStatus,
-                pulisherPrivilege,
-                publisherLastCongragationRef: firestore.doc(`congregations/${publisherLastCongragationId}`),
-                status: "draft",
-                createdAt: new Date(),
-                verifiedDate: null,
-                updatedAt: new Date(),
-
-            }).then(async (publisher) => {
-
-                const p_ = await publisher.get();
-                response.send({ ...p_.data(), id: p_.id });
-
-            }).catch((error) => {
-
-                functions.logger.info("Fail to add publisher", error);
-                response.status(500).send(error);
-
-            });
-
-}
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
+        publisherLastCongragationId: yup.string().required("publisherLastCongragationId is required"),
+        publisherName: yup.string().required("publisherName is required"),
+        publisherDescription: yup.string().required("publisherDescription is required"),
+        publisherAddress: yup.string().required("publisherAddress is required"),
+        publisherEmail: yup.string().required("publisherEmail is required"),
+        publisherPhone: yup.string().required("publisherPhone is required"),
+        pulisherPrivilege: yup.string().required("pulisherPrivilege is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const freshData = pick(request.body, ["publisherName", "publisherDescription", "publisherAddress", "publisherEmail", "publisherPhone", "pulisherPrivilege"]);
+
+        const congregationId = request.body.congregationId;
+        const publisherLastCongragationId = request.body.publisherLastCongragationId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+
+        publisherLastCongragationId.get().then((doc) => {
+
+            if (!doc.exists) {
+
+                response.status(404).send("Congregation not found");
+
+            } else {
+
+                congregationRef.collection("publishers").add({
+
+                    ...freshData,
+                    publisherStatus: null,
+                    publisherLastCongragationRef: firestore.collection("congregations").doc(publisherLastCongragationId),
+                    status: "draft",
+                    createdAt: new Date(),
+                    verifiedDate: null,
+                    updatedAt: new Date(),
+
+                }).then(async (publisher) => {
+
+                    const p_ = await publisher.get();
+                    response.send({ ...p_.data(), id: p_.id });
+
+                }).catch((error) => response.status(400).send(error));
+
+            }
+
+        });
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -63,22 +67,29 @@ exports.addPublisher = functions.https.onRequest((request, response) => {
 // in the app. It will get all publishers from the database.\
 exports.getPublishers = functions.https.onRequest((request, response) => {
 
-    firestore.collection("publishers").get().then((publishers) => {
-
-        const publishers_ = publishers.docs.map((publisher) => {
-
-            return { ...publisher.data(), id: publisher.id };
-
-        });
-
-        response.send(publishers_);
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to get publishers");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+
+        congregationRef.collection("publishers").get().then((publishers) => {
+
+            const publishers_ = publishers.docs.map((publisher) => {
+
+                return { ...publisher.data(), id: publisher.id };
+
+            });
+
+            response.send(publishers_);
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -87,19 +98,27 @@ exports.getPublishers = functions.https.onRequest((request, response) => {
 // in the app. It will get a publisher from the database.\
 exports.getPublisher = functions.https.onRequest((request, response) => {
 
-    const publisherId = request.body.publisherId;
-    if (!publisherId) return response.status(400).send("Publisher Id is required");
-
-    firestore.collection("publishers").doc(publisherId).get().then((publisher) => {
-
-        response.send({ ...publisher.data(), id: publisher.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to get publisher");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
+        publisherId: yup.string().required("publisherId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+        const publisherId = request.body.publisherId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+        const publisherRef = congregationRef.collection("publishers").doc(publisherId);
+
+        publisherRef.get().then((publisher) => {
+
+            response.send({ ...publisher.data(), id: publisher.id });
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
+
 
 });
 
@@ -108,41 +127,41 @@ exports.getPublisher = functions.https.onRequest((request, response) => {
 // in the app. It will update a publisher in the database.\
 exports.updatePublisher = functions.https.onRequest((request, response) => {
 
-    const publisherId = request.body.publisherId;
-    if (!publisherId) return response.status(400).send("Publisher Id is required");
-
-    const publisherName = request.body.publisherName;
-    const publisherDescription = request.body.publisherDescription;
-    const publisherAddress = request.body.publisherAddress;
-    const publisherEmail = request.body.publisherEmail;
-    const publisherPhone = request.body.publisherPhone;
-    const publisherStatus = request.body.publisherStatus;
-    const pulisherPrivilege = request.body.pulisherPrivilege;
-    const publisherLastCongragationId = request.body.publisherLastCongragationId;
-
-    firestore.collection("publishers").doc(publisherId).update({
-
-        publisherName,
-        publisherDescription,
-        publisherAddress,
-        publisherEmail,
-        publisherPhone,
-        publisherStatus,
-        pulisherPrivilege,
-        publisherLastCongragationRef: firestore.doc(`congregations/${publisherLastCongragationId}`),
-        updatedAt: new Date(),
-
-    }).then(async (publisher) => {
-
-        const p_ = await publisher.get();
-        response.send({ ...p_.data(), id: p_.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to update publisher");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
+        publisherId: yup.string().required("publisherId is required"),
+        publisherName: yup.string().required("publisherName is required"),
+        publisherDescription: yup.string().required("publisherDescription is required"),
+        publisherAddress: yup.string().required("publisherAddress is required"),
+        publisherEmail: yup.string().required("publisherEmail is required"),
+        publisherPhone: yup.string().required("publisherPhone is required"),
+        pulisherPrivilege: yup.string().required("pulisherPrivilege is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+        const publisherId = request.body.publisherId;
+
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+        const publisherRef = congregationRef.collection("congregations").doc(publisherId);
+
+        const freshData = pick(request.body, ["publisherName", "publisherDescription", "publisherAddress", "publisherEmail", "publisherPhone", "pulisherPrivilege"]);
+
+        publisherRef.update({
+
+            ...freshData,
+            updatedAt: new Date(),
+
+        }).then(async (publisher) => {
+
+            const p_ = await publisherRef.get();
+            response.send({ ...p_.data(), id: p_.id });
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -151,19 +170,26 @@ exports.updatePublisher = functions.https.onRequest((request, response) => {
 // in the app. It will delete a publisher from the database.\
 exports.deletePublisher = functions.https.onRequest((request, response) => {
 
-    const publisherId = request.body.publisherId;
-    if (!publisherId) return response.status(400).send("Publisher Id is required");
-
-    firestore.collection("publishers").doc(publisherId).delete().then(() => {
-
-        response.send("Publisher deleted successfully");
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to delete publisher");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
+        publisherId: yup.string().required("publisherId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+        const publisherId = request.body.publisherId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+        const publisherRef = congregationRef.collection("congregations").doc(publisherId);
+
+        publisherRef.delete().then(() => {
+
+            response.send("Publisher deleted successfully");
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
@@ -171,25 +197,32 @@ exports.deletePublisher = functions.https.onRequest((request, response) => {
 // in the app. It will verify a publisher in the database.\
 exports.verifyPublisher = functions.https.onRequest((request, response) => {
 
-    const publisherId = request.body.publisherId;
-    if (!publisherId) return response.status(400).send("Publisher Id is required");
-
-    firestore.collection("publishers").doc(publisherId).update({
-
-        status: "verified",
-        verifiedDate: new Date(),
-
-    }).then(async (publisher) => {
-
-        const p_ = await publisher.get();
-        response.send({ ...p_.data(), id: p_.id });
-
-    }).catch((error) => {
-
-        functions.logger.info("Fail to verify publisher");
-        response.status(500).send(error);
-
+    const schema = yup.object({
+        congregationId: yup.string().required("congregationId is required"),
+        publisherId: yup.string().required("publisherId is required"),
     });
+
+    schema.validate(request.body).then((val) => {
+
+        const congregationId = request.body.congregationId;
+        const publisherId = request.body.publisherId;
+
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
+        const publisherRef = congregationRef.collection("congregations").doc(publisherId);
+
+        publisherRef.update({
+
+            status: "verified",
+            verifiedDate: new Date(),
+
+        }).then(async (publisher) => {
+
+            const p_ = await publisherRef.get();
+            response.send({ ...p_.data(), id: p_.id });
+
+        }).catch((error) => response.status(400).send(error));
+
+    }).catch((error) => response.status(400).send(error));
 
 });
 
