@@ -154,7 +154,7 @@ exports.updatePublisher = functions.https.onRequest((request, response) => {
             ...freshData,
             updatedAt: new Date(),
 
-        }).then(async (publisher) => {
+        }, { exists: true }).then(async (publisher) => {
 
             const p_ = await publisherRef.get();
             response.send({ ...p_.data(), id: p_.id });
@@ -183,7 +183,7 @@ exports.deletePublisher = functions.https.onRequest((request, response) => {
         const congregationRef = firestore.collection("congregations").doc(congregationId);
         const publisherRef = congregationRef.collection("congregations").doc(publisherId);
 
-        publisherRef.delete().then(() => {
+        publisherRef.delete({ exists: true }).then(() => {
 
             response.send("Publisher deleted successfully");
 
@@ -215,7 +215,7 @@ exports.verifyPublisher = functions.https.onRequest((request, response) => {
             status: "verified",
             verifiedDate: new Date(),
 
-        }).then(async (publisher) => {
+        }, { exists: true }).then(async (publisher) => {
 
             const p_ = await publisherRef.get();
             response.send({ ...p_.data(), id: p_.id });

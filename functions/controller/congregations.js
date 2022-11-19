@@ -111,6 +111,8 @@ exports.updateCongregation = functions.https.onRequest((request, response) => {
             ...freshData,
             updatedAt: new Date(),
 
+        }, {
+            exists: true,
         }).then(async (congregation) => {
 
             const c_ = await congregationRef.get();
@@ -167,7 +169,7 @@ exports.verifyCongregation = functions.https.onRequest((request, response) => {
             verifiedDate: new Date(),
             updatedAt: new Date(),
 
-        }).then(async (congregation) => {
+        }, { exists: true }).then(async (congregation) => {
 
             const c_ = await congregationRef.get();
             response.send({ ...c_.data(), id: c_.id });
