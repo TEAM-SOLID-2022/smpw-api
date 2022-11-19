@@ -82,7 +82,7 @@ exports.getCongregation = functions.https.onRequest((request, response) => {
 
             response.send({ ...congregation.data(), id: congregation.id });
 
-        }).catch((error) => response.status(500).send(error));
+        }).catch((error) => response.status(400).send(error));
 
     }).catch((error) => response.status(400).send(error));
 
@@ -172,7 +172,7 @@ exports.verifyCongregation = functions.https.onRequest((request, response) => {
             const c_ = await congregationRef.get();
             response.send({ ...c_.data(), id: c_.id });
 
-        }).catch((error) => response.status(500).send(error));
+        }).catch((error) => response.status(400).send(error));
 
     }).catch((error) => response.status(400).send(error));
 

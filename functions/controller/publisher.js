@@ -29,7 +29,7 @@ exports.addPublisher = functions.https.onRequest((request, response) => {
 
         const congregationRef = firestore.collection("congregations").doc(congregationId);
 
-        publisherLastCongragationId.get().then((doc) => {
+        congregationRef.get().then((doc) => {
 
             if (!doc.exists) {
 
