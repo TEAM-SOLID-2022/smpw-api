@@ -145,7 +145,7 @@ exports.updatePublisher = functions.https.onRequest((request, response) => {
 
 
         const congregationRef = firestore.collection("congregations").doc(congregationId);
-        const publisherRef = congregationRef.collection("congregations").doc(publisherId);
+        const publisherRef = congregationRef.collection("publishers").doc(publisherId);
 
         const freshData = pick(request.body, ["publisherName", "publisherDescription", "publisherAddress", "publisherEmail", "publisherPhone", "pulisherPrivilege"]);
 
@@ -181,7 +181,7 @@ exports.deletePublisher = functions.https.onRequest((request, response) => {
         const publisherId = request.body.publisherId;
 
         const congregationRef = firestore.collection("congregations").doc(congregationId);
-        const publisherRef = congregationRef.collection("congregations").doc(publisherId);
+        const publisherRef = congregationRef.collection("publishers").doc(publisherId);
 
         publisherRef.delete({ exists: true }).then(() => {
 
@@ -208,7 +208,7 @@ exports.verifyPublisher = functions.https.onRequest((request, response) => {
         const publisherId = request.body.publisherId;
 
         const congregationRef = firestore.collection("congregations").doc(congregationId);
-        const publisherRef = congregationRef.collection("congregations").doc(publisherId);
+        const publisherRef = congregationRef.collection("publishers").doc(publisherId);
 
         publisherRef.update({
 
