@@ -16,5 +16,6 @@ module.exports = {
     "object-curly-spacing": ["error", "always"],
     "max-len": ["off", { "code": 120 }],
     "padded-blocks": ["error", { "blocks": "always", "classes": "always", "switches": "always" }],
+    "camelcase": ["off"],
   },
 };

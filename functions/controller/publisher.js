@@ -4,6 +4,7 @@ const app = require("./index").app;
 const firestore = firebase.firestore(app);
 const yup = require("yup");
 const { pick } = require("lodash");
+const { transform_underscore } = require("../utils.js/transform_underscore");
 
 // This is the function that will be called when the user clicks the "Add Publisher" button
 // in the app. It will create a new publisher in the database.\
@@ -25,6 +26,7 @@ exports.addPublisher = functions.https.onRequest((request, response) => {
         const freshData = pick(request.body, ["publisherName", "publisherDescription", "publisherAddress", "publisherEmail", "publisherPhone", "pulisherPrivilege"]);
 
         const congregationId = request.body.congregationId;
+        const publisherId = transform_underscore(request.body.publisherName);
         const publisherLastCongragationId = request.body.publisherLastCongragationId;
 
         const congregationRef = firestore.collection("congregations").doc(congregationId);
@@ -37,7 +39,9 @@ exports.addPublisher = functions.https.onRequest((request, response) => {
 
             } else {
 
-                congregationRef.collection("publishers").add({
+                const publisherRef = congregationRef.collection("publishers").doc(publisherId);
+
+                publisherRef.create({
 
                     ...freshData,
                     publisherStatus: null,

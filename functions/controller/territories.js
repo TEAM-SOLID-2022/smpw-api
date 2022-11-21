@@ -3,6 +3,7 @@ const firebase = require("firebase-admin");
 const app = require("./index").app;
 const { pick } = require("lodash");
 const yup = require("yup");
+const { transform_underscore } = require("../utils.js/transform_underscore");
 
 
 const firestore = firebase.firestore(app);
@@ -22,7 +23,7 @@ exports.addTerritory = functions.https.onRequest((request, response) => {
     }).then((val) => {
 
         // Get the territory name from the request body
-        const territoryName = request.body.territoryName;
+        const territoryId = transform_underscore(request.body.territoryName);
         const congregationId = request.body.congregationId;
 
         const congregationRef = firestore.collection("congregations").doc(congregationId);
@@ -31,9 +32,9 @@ exports.addTerritory = functions.https.onRequest((request, response) => {
 
             if (!congregation.exists) return response.status(404).send("Congregation not Found!");
 
-            const territoryRef = congregationRef.collection("territories").doc(territoryName);
+            const territoryRef = congregationRef.collection("territories").doc(territoryId);
 
-            const freshData = pick(request.body, ["territoryDescription"]);
+            const freshData = pick(request.body, ["territoryDescription", "territoryName"]);
 
             // Create a new territory in the database
             territoryRef.create({

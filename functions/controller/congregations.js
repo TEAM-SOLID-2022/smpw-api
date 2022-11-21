@@ -4,6 +4,7 @@ const app = require("./index").app;
 const firestore = firebase.firestore(app);
 const yup = require("yup");
 const { pick } = require("lodash");
+const { transform_underscore } = require("../utils.js/transform_underscore");
 
 
 // This is the function that will be called when the user clicks the "Add Congregation" button
@@ -18,11 +19,12 @@ exports.addCongregation = functions.https.onRequest((request, response) => {
 
     schema.validate(request.body).then((val) => {
 
+        const congregationId = transform_underscore(request.body.congregationName);
         const freshData = pick(request.body, ["congregationName", "congregationDescription", "congregationAddress"]);
 
-        const congregationRef = firestore.collection("congregations");
+        const congregationRef = firestore.collection("congregations").doc(congregationId);
 
-        congregationRef.add({
+        congregationRef.create({
 
             ...freshData,
             status: "draft",
