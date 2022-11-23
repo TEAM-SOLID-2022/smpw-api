@@ -96,9 +96,7 @@ exports.getCongregation = functions.https.onRequest((request, response) => {
 exports.updateCongregation = functions.https.onRequest((request, response) => {
 
     const schema = yup.object({
-        congregationName: yup.string().required("congregationName is required"),
-        congregationDescription: yup.string().required("congregationDescription is required"),
-        congregationAddress: yup.string().required("congregationAddress is required"),
+        congregationId: yup.string().required("congregationId is required"),
     });
 
     schema.validate(request.body).then((val) => {

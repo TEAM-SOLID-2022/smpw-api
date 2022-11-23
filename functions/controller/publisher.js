@@ -134,12 +134,6 @@ exports.updatePublisher = functions.https.onRequest((request, response) => {
     const schema = yup.object({
         congregationId: yup.string().required("congregationId is required"),
         publisherId: yup.string().required("publisherId is required"),
-        publisherName: yup.string().required("publisherName is required"),
-        publisherDescription: yup.string().required("publisherDescription is required"),
-        publisherAddress: yup.string().required("publisherAddress is required"),
-        publisherEmail: yup.string().required("publisherEmail is required"),
-        publisherPhone: yup.string().required("publisherPhone is required"),
-        pulisherPrivilege: yup.string().required("pulisherPrivilege is required"),
     });
 
     schema.validate(request.body).then((val) => {
@@ -158,7 +152,7 @@ exports.updatePublisher = functions.https.onRequest((request, response) => {
             ...freshData,
             updatedAt: new Date(),
 
-        }, { exists: true }).then(async (publisher) => {
+        }).then(async (publisher) => {
 
             const p_ = await publisherRef.get();
             response.send({ ...p_.data(), id: p_.id });

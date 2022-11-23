@@ -135,8 +135,6 @@ exports.updateTerritory = functions.https.onRequest((request, response) => {
         territoryRef.update({
             ...freshData,
             updatedAt: new Date(),
-        }, {
-            exists: true,
         }).then(async (territory) => {
 
             const t_ = await territoryRef.get();
